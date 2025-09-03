@@ -16,6 +16,8 @@ interface ShopPanelProps {
   collectibles: Collectible[];
   coins: number;
   onBuyCollectible: (collectibleId: string) => void;
+  gameCompleted: boolean;
+  currentSeason: number;
 }
 
 const rarityColors = {
@@ -25,16 +27,23 @@ const rarityColors = {
   legendary: 'bg-gold/20 text-gold border-gold/30'
 };
 
-export const ShopPanel = ({ collectibles, coins, onBuyCollectible }: ShopPanelProps) => {
+export const ShopPanel = ({ collectibles, coins, onBuyCollectible, gameCompleted, currentSeason }: ShopPanelProps) => {
   return (
     <Card className="bg-game-card border-border/50">
       <CardHeader>
-        <CardTitle className="text-xl font-bold text-primary">NFT Shop</CardTitle>
-        <CardDescription>Collect unique digital treasures</CardDescription>
+        <CardTitle className="text-xl font-bold text-primary">
+          {gameCompleted ? 'Final Collection' : `Season ${currentSeason} NFT Shop`}
+        </CardTitle>
+        <CardDescription>
+          {gameCompleted 
+            ? 'Your complete collection across all seasons' 
+            : 'Collect all NFTs to advance to the next season'
+          }
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {collectibles.map((collectible) => {
-          const canAfford = coins >= collectible.cost && !collectible.owned;
+          const canAfford = coins >= collectible.cost && !collectible.owned && !gameCompleted;
           
           return (
             <Card 
@@ -73,7 +82,7 @@ export const ShopPanel = ({ collectibles, coins, onBuyCollectible }: ShopPanelPr
                         size="sm"
                         variant={canAfford ? "default" : "secondary"}
                       >
-                        {collectible.owned ? 'Owned' : 'Buy'}
+                        {collectible.owned ? 'Owned' : gameCompleted ? 'Final' : 'Buy'}
                       </Button>
                     </div>
                   </div>

@@ -11,22 +11,28 @@ interface StatsPanelProps {
   upgradeSlots: number;
   usedUpgradeSlots: number;
   gameCompleted: boolean;
+  level: number;
+  experience: number;
 }
 
 export const StatsPanel = ({ 
   coins, 
   coinsPerClick, 
   coinsPerSecond, 
-  totalClicks,
-  ownedCollectibles,
-  totalCollectibles,
-  currentSeason,
-  upgradeSlots,
-  usedUpgradeSlots,
-  gameCompleted
+  totalClicks, 
+  ownedCollectibles, 
+  totalCollectibles, 
+  currentSeason, 
+  upgradeSlots, 
+  usedUpgradeSlots, 
+  gameCompleted,
+  level,
+  experience
 }: StatsPanelProps) => {
   const stats = [
     { label: 'Season', value: gameCompleted ? 'COMPLETED!' : `${currentSeason}/5` },
+    { label: 'Player Level', value: level.toString() },
+    { label: 'Experience', value: experience.toLocaleString() },
     { label: 'Total Coins', value: coins.toLocaleString() },
     { label: 'Per Click', value: `+${coinsPerClick}` },
     { label: 'Per Second', value: `+${coinsPerSecond}` },

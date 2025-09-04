@@ -20,6 +20,19 @@ export interface Collectible {
   image: string;
 }
 
+export interface Buff {
+  id: string;
+  name: string;
+  description: string;
+  cost: number;
+  duration: number;
+  effect: string;
+  cooldown: number;
+  isActive: boolean;
+  remainingTime: number;
+  lastUsed: number;
+}
+
 export interface GameState {
   coins: number;
   coinsPerClick: number;
@@ -30,6 +43,9 @@ export interface GameState {
   currentSeason: number;
   gameCompleted: boolean;
   upgradeSlots: number;
+  buffs: Buff[];
+  experience: number;
+  level: number;
 }
 
 const INITIAL_UPGRADES: Upgrade[] = [
@@ -59,6 +75,45 @@ const INITIAL_UPGRADES: Upgrade[] = [
     multiplier: 10,
     owned: 0,
     maxOwned: 3
+  }
+];
+
+const INITIAL_BUFFS: Buff[] = [
+  {
+    id: 'hold-to-generate',
+    name: 'Rapid Fire',
+    description: 'Hold the coin button to generate coins rapidly for 15 seconds',
+    cost: 500,
+    duration: 15000,
+    effect: 'hold-generate',
+    cooldown: 30000,
+    isActive: false,
+    remainingTime: 0,
+    lastUsed: 0
+  },
+  {
+    id: 'double-coins',
+    name: 'Double Coins',
+    description: 'Double all coin generation for 10 seconds',
+    cost: 1000,
+    duration: 10000,
+    effect: 'double-coins',
+    cooldown: 60000,
+    isActive: false,
+    remainingTime: 0,
+    lastUsed: 0
+  },
+  {
+    id: 'mega-click',
+    name: 'Mega Click',
+    description: 'Next 10 clicks give 10x coins',
+    cost: 750,
+    duration: 0,
+    effect: 'mega-click',
+    cooldown: 45000,
+    isActive: false,
+    remainingTime: 10,
+    lastUsed: 0
   }
 ];
 
@@ -121,9 +176,15 @@ export const useGameState = () => {
             const savedCollectible = parsed.collectibles?.find((c: Collectible) => c.id === collectible.id);
             return savedCollectible ? { ...collectible, owned: savedCollectible.owned } : collectible;
           }),
+          buffs: INITIAL_BUFFS.map(buff => {
+            const savedBuff = parsed.buffs?.find((b: Buff) => b.id === buff.id);
+            return savedBuff ? { ...buff, lastUsed: savedBuff.lastUsed } : buff;
+          }),
           currentSeason: parsed.currentSeason || 1,
           gameCompleted: parsed.gameCompleted || false,
-          upgradeSlots: parsed.upgradeSlots || 10
+          upgradeSlots: parsed.upgradeSlots || 10,
+          experience: parsed.experience || 0,
+          level: parsed.level || 1
         };
       } catch (e) {
         console.error('Failed to load save:', e);
@@ -138,7 +199,10 @@ export const useGameState = () => {
       collectibles: getSeasonCollectibles(1),
       currentSeason: 1,
       gameCompleted: false,
-      upgradeSlots: 10
+      upgradeSlots: 10,
+      buffs: INITIAL_BUFFS,
+      experience: 0,
+      level: 1
     };
   });
 
@@ -147,31 +211,100 @@ export const useGameState = () => {
     localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
   }, [gameState]);
 
-  // Auto-clicker effect
+  // Auto-clicker and buff management effect
   useEffect(() => {
-    if (gameState.coinsPerSecond > 0 && !gameState.gameCompleted) {
-      const interval = setInterval(() => {
-        setGameState(prev => {
-          if (prev.gameCompleted) return prev;
+    const interval = setInterval(() => {
+      setGameState(prev => {
+        if (prev.gameCompleted) return prev;
+        
+        let newCoins = prev.coins;
+        let newBuffs = [...prev.buffs];
+        let newExp = prev.experience;
+        let newLevel = prev.level;
+        
+        // Auto-clicker
+        if (prev.coinsPerSecond > 0) {
+          const doubleCoinsActive = prev.buffs.find(b => b.id === 'double-coins' && b.isActive);
+          const multiplier = doubleCoinsActive ? 2 : 1;
+          newCoins += prev.coinsPerSecond * multiplier;
           
-          return {
-            ...prev,
-            coins: prev.coins + prev.coinsPerSecond
-          };
+          // Add XP for auto generation
+          newExp += Math.floor(prev.coinsPerSecond * multiplier * 0.1);
+        }
+        
+        // Update buffs
+        newBuffs = newBuffs.map(buff => {
+          if (buff.isActive && buff.duration > 0) {
+            const newRemainingTime = Math.max(0, buff.remainingTime - 1000);
+            if (newRemainingTime <= 0) {
+              return { ...buff, isActive: false, remainingTime: 0 };
+            }
+            return { ...buff, remainingTime: newRemainingTime };
+          } else if (buff.effect === 'mega-click' && buff.isActive && buff.remainingTime <= 0) {
+            return { ...buff, isActive: false, remainingTime: 10 };
+          }
+          return buff;
         });
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [gameState.coinsPerSecond, gameState.gameCompleted]);
+        
+        // Level up calculation
+        const expToNext = newLevel * 100;
+        if (newExp >= expToNext) {
+          newLevel++;
+          newExp = newExp - expToNext;
+        }
+        
+        return {
+          ...prev,
+          coins: newCoins,
+          buffs: newBuffs,
+          experience: newExp,
+          level: newLevel
+        };
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [gameState.gameCompleted]);
 
   const clickCoin = useCallback(() => {
     setGameState(prev => {
       if (prev.gameCompleted) return prev;
       
+      let coinsToAdd = prev.coinsPerClick;
+      let newBuffs = [...prev.buffs];
+      let newExp = prev.experience + 1; // 1 XP per click
+      let newLevel = prev.level;
+      
+      // Check for active buffs
+      const doubleCoinsActive = prev.buffs.find(b => b.id === 'double-coins' && b.isActive);
+      const megaClickBuff = prev.buffs.find(b => b.id === 'mega-click' && b.isActive);
+      
+      if (doubleCoinsActive) {
+        coinsToAdd *= 2;
+      }
+      
+      if (megaClickBuff && megaClickBuff.remainingTime > 0) {
+        coinsToAdd *= 10;
+        newBuffs = newBuffs.map(buff => 
+          buff.id === 'mega-click' 
+            ? { ...buff, remainingTime: buff.remainingTime - 1 }
+            : buff
+        );
+      }
+      
+      // Level up calculation
+      const expToNext = newLevel * 100;
+      if (newExp >= expToNext) {
+        newLevel++;
+        newExp = newExp - expToNext;
+      }
+      
       return {
         ...prev,
-        coins: prev.coins + prev.coinsPerClick,
-        totalClicks: prev.totalClicks + 1
+        coins: prev.coins + coinsToAdd,
+        totalClicks: prev.totalClicks + 1,
+        buffs: newBuffs,
+        experience: newExp,
+        level: newLevel
       };
     });
   }, []);
@@ -246,7 +379,8 @@ export const useGameState = () => {
           coins: 0, // Reset coins
           collectibles: getSeasonCollectibles(nextSeason),
           currentSeason: nextSeason,
-          upgradeSlots: prev.upgradeSlots + 5 // Add 5 more upgrade slots
+          upgradeSlots: prev.upgradeSlots + 5, // Add 5 more upgrade slots
+          buffs: INITIAL_BUFFS // Reset buffs
         };
       } else if (allOwned && prev.currentSeason === 5) {
         // Game completed
@@ -266,10 +400,44 @@ export const useGameState = () => {
     });
   }, []);
 
+  const buyBuff = useCallback((buffId: string) => {
+    setGameState(prev => {
+      if (prev.gameCompleted) return prev;
+      
+      const buff = prev.buffs.find(b => b.id === buffId);
+      if (!buff || prev.coins < buff.cost) return prev;
+      
+      const now = Date.now();
+      const timeSinceLastUse = now - buff.lastUsed;
+      
+      // Check if buff is on cooldown
+      if (timeSinceLastUse < buff.cooldown) return prev;
+      
+      const newBuffs = prev.buffs.map(b => {
+        if (b.id === buffId) {
+          return {
+            ...b,
+            isActive: true,
+            remainingTime: b.duration > 0 ? b.duration : b.remainingTime,
+            lastUsed: now
+          };
+        }
+        return b;
+      });
+      
+      return {
+        ...prev,
+        coins: prev.coins - buff.cost,
+        buffs: newBuffs
+      };
+    });
+  }, []);
+
   return {
     gameState,
     clickCoin,
     buyUpgrade,
-    buyCollectible
+    buyCollectible,
+    buyBuff
   };
 };

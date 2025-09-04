@@ -5,10 +5,12 @@ import { ShopPanel } from '@/components/ShopPanel';
 import { StatsPanel } from '@/components/StatsPanel';
 import { SeasonProgress } from '@/components/SeasonProgress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BuffPanel } from '@/components/BuffPanel';
+import { LevelPanel } from '@/components/LevelPanel';
 
 
 const Index = () => {
-  const { gameState, clickCoin, buyUpgrade, buyCollectible } = useGameState();
+  const { gameState, clickCoin, buyUpgrade, buyCollectible, buyBuff } = useGameState();
   
   const ownedCollectibles = gameState.collectibles.filter(c => c.owned).length;
   const usedUpgradeSlots = gameState.upgrades.reduce((sum, u) => sum + u.owned, 0);
@@ -25,13 +27,17 @@ const Index = () => {
               onCoinClick={clickCoin}
               gameCompleted={gameState.gameCompleted}
               currentSeason={gameState.currentSeason}
+              buffs={gameState.buffs}
             />
             
-            {/* Tabs for Upgrades and Shop */}
+            {/* Tabs for Upgrades, Buffs, and Shop */}
             <Tabs defaultValue="upgrades" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-game-card">
+              <TabsList className="grid w-full grid-cols-3 bg-game-card">
                 <TabsTrigger value="upgrades" className="data-[state=active]:bg-primary">
                   Upgrades
+                </TabsTrigger>
+                <TabsTrigger value="buffs" className="data-[state=active]:bg-primary">
+                  Buffs
                 </TabsTrigger>
                 <TabsTrigger value="shop" className="data-[state=active]:bg-primary">
                   NFT Shop
@@ -49,6 +55,15 @@ const Index = () => {
                 />
               </TabsContent>
               
+              <TabsContent value="buffs" className="mt-4">
+                <BuffPanel 
+                  buffs={gameState.buffs}
+                  coins={gameState.coins}
+                  onBuyBuff={buyBuff}
+                  gameCompleted={gameState.gameCompleted}
+                />
+              </TabsContent>
+              
               <TabsContent value="shop" className="mt-4">
                 <ShopPanel 
                   collectibles={gameState.collectibles}
@@ -63,6 +78,12 @@ const Index = () => {
           
           {/* Sidebar */}
           <div className="space-y-6">
+            <LevelPanel 
+              level={gameState.level}
+              experience={gameState.experience}
+              gameCompleted={gameState.gameCompleted}
+            />
+            
             <StatsPanel 
               coins={gameState.coins}
               coinsPerClick={gameState.coinsPerClick}
@@ -74,6 +95,8 @@ const Index = () => {
               upgradeSlots={gameState.upgradeSlots}
               usedUpgradeSlots={usedUpgradeSlots}
               gameCompleted={gameState.gameCompleted}
+              level={gameState.level}
+              experience={gameState.experience}
             />
             
             <SeasonProgress 

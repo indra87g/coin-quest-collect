@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Buff } from '@/hooks/useGameState';
 
 interface CoinClickerProps {
   coins: number;
@@ -7,16 +8,52 @@ interface CoinClickerProps {
   onCoinClick: () => void;
   gameCompleted: boolean;
   currentSeason: number;
+  buffs: Buff[];
 }
 
-export const CoinClicker = ({ coins, coinsPerClick, onCoinClick, gameCompleted, currentSeason }: CoinClickerProps) => {
+export const CoinClicker = ({ coins, coinsPerClick, onCoinClick, gameCompleted, currentSeason, buffs }: CoinClickerProps) => {
   const [isClicking, setIsClicking] = useState(false);
+  const [isHolding, setIsHolding] = useState(false);
+  const holdIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const rapidFireBuff = buffs.find(b => b.id === 'hold-to-generate' && b.isActive);
+  
   const handleClick = () => {
     setIsClicking(true);
     onCoinClick();
     setTimeout(() => setIsClicking(false), 300);
   };
+
+  const startHolding = useCallback(() => {
+    if (!rapidFireBuff || gameCompleted) return;
+    
+    setIsHolding(true);
+    holdTimeoutRef.current = setTimeout(() => {
+      holdIntervalRef.current = setInterval(() => {
+        onCoinClick();
+      }, 100); // Generate coins every 100ms while holding
+    }, 200); // Start after 200ms hold
+  }, [rapidFireBuff, gameCompleted, onCoinClick]);
+
+  const stopHolding = useCallback(() => {
+    setIsHolding(false);
+    if (holdTimeoutRef.current) {
+      clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
+    }
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimeoutRef.current) clearTimeout(holdTimeoutRef.current);
+      if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+    };
+  }, []);
 
   return (
     <div className="flex flex-col items-center space-y-6">
@@ -43,23 +80,37 @@ export const CoinClicker = ({ coins, coinsPerClick, onCoinClick, gameCompleted, 
         )}
       </div>
       
-      <Button
-        onClick={handleClick}
-        size="lg"
-        disabled={gameCompleted}
-        className={`
-          w-32 h-32 rounded-full text-6xl
-          bg-gradient-to-br from-coin to-gold
-          hover:from-gold hover:to-coin
-          border-4 border-gold/50
-          shadow-2xl hover:shadow-coin/50
-          transition-all duration-200
-          ${gameCompleted ? 'opacity-50 cursor-not-allowed' : ''}
-          ${isClicking ? 'animate-bounce-coin' : 'animate-float'}
-        `}
-      >
-        {gameCompleted ? '👑' : '🪙'}
-      </Button>
+      <div className="relative">
+        <Button
+          onClick={rapidFireBuff ? undefined : handleClick}
+          onMouseDown={rapidFireBuff ? startHolding : undefined}
+          onMouseUp={rapidFireBuff ? stopHolding : undefined}
+          onMouseLeave={rapidFireBuff ? stopHolding : undefined}
+          onTouchStart={rapidFireBuff ? startHolding : undefined}
+          onTouchEnd={rapidFireBuff ? stopHolding : undefined}
+          size="lg"
+          disabled={gameCompleted}
+          className={`
+            w-32 h-32 rounded-full text-6xl
+            bg-gradient-to-br from-coin to-gold
+            hover:from-gold hover:to-coin
+            border-4 border-gold/50
+            shadow-2xl hover:shadow-coin/50
+            transition-all duration-200
+            ${gameCompleted ? 'opacity-50 cursor-not-allowed' : ''}
+            ${isClicking || isHolding ? 'animate-bounce-coin' : 'animate-float'}
+            ${rapidFireBuff ? 'animate-pulse' : ''}
+          `}
+        >
+          {gameCompleted ? '👑' : '🪙'}
+        </Button>
+        
+        {rapidFireBuff && (
+          <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs text-warning bg-warning/20 px-2 py-1 rounded animate-pulse">
+            Hold to generate!
+          </div>
+        )}
+      </div>
       
       <div className="text-center text-muted-foreground">
         {gameCompleted 

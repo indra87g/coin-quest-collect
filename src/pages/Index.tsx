@@ -7,10 +7,12 @@ import { SeasonProgress } from '@/components/SeasonProgress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BuffPanel } from '@/components/BuffPanel';
 import { LevelPanel } from '@/components/LevelPanel';
+import { AuthPanel } from '@/components/AuthPanel';
+import { SavePanel } from '@/components/SavePanel';
 
 
 const Index = () => {
-  const { gameState, clickCoin, buyUpgrade, buyCollectible, buyBuff } = useGameState();
+  const { gameState, clickCoin, buyUpgrade, buyCollectible, buyBuff, setGameStateFromSave } = useGameState();
   
   const ownedCollectibles = gameState.collectibles.filter(c => c.owned).length;
   const usedUpgradeSlots = gameState.upgrades.reduce((sum, u) => sum + u.owned, 0);
@@ -30,9 +32,9 @@ const Index = () => {
               buffs={gameState.buffs}
             />
             
-            {/* Tabs for Upgrades, Buffs, and Shop */}
+            {/* Tabs for Upgrades, Buffs, Shop, Account, and Save */}
             <Tabs defaultValue="upgrades" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-game-card">
+              <TabsList className="grid w-full grid-cols-5 bg-game-card">
                 <TabsTrigger value="upgrades" className="data-[state=active]:bg-primary">
                   Upgrades
                 </TabsTrigger>
@@ -41,6 +43,12 @@ const Index = () => {
                 </TabsTrigger>
                 <TabsTrigger value="shop" className="data-[state=active]:bg-primary">
                   NFT Shop
+                </TabsTrigger>
+                <TabsTrigger value="account" className="data-[state=active]:bg-primary">
+                  Account
+                </TabsTrigger>
+                <TabsTrigger value="save" className="data-[state=active]:bg-primary">
+                  Save Game
                 </TabsTrigger>
               </TabsList>
               
@@ -71,6 +79,17 @@ const Index = () => {
                   onBuyCollectible={buyCollectible}
                   gameCompleted={gameState.gameCompleted}
                   currentSeason={gameState.currentSeason}
+                />
+              </TabsContent>
+              
+              <TabsContent value="account" className="mt-4">
+                <AuthPanel />
+              </TabsContent>
+              
+              <TabsContent value="save" className="mt-4">
+                <SavePanel 
+                  gameState={gameState}
+                  onLoadGameState={setGameStateFromSave}
                 />
               </TabsContent>
             </Tabs>

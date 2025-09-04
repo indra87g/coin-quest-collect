@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useCloudSave } from './useCloudSave';
+import { useAuth } from './useAuth';
 
 export interface Upgrade {
   id: string;
@@ -161,6 +163,9 @@ const getSeasonCollectibles = (season: number): Collectible[] => {
 const SAVE_KEY = 'idle-coin-clicker-save';
 
 export const useGameState = () => {
+  const { user } = useAuth();
+  const { saveToCloud } = useCloudSave();
+  
   const [gameState, setGameState] = useState<GameState>(() => {
     const saved = localStorage.getItem(SAVE_KEY);
     if (saved) {
@@ -210,6 +215,17 @@ export const useGameState = () => {
   useEffect(() => {
     localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
   }, [gameState]);
+
+  // Auto-save to cloud every 30 seconds if user is signed in
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(async () => {
+      await saveToCloud(gameState, 'Main Save', true);
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [gameState, user, saveToCloud]);
 
   // Auto-clicker and buff management effect
   useEffect(() => {
@@ -433,11 +449,16 @@ export const useGameState = () => {
     });
   }, []);
 
+  const setGameStateFromSave = useCallback((newState: GameState) => {
+    setGameState(newState);
+  }, []);
+
   return {
     gameState,
     clickCoin,
     buyUpgrade,
     buyCollectible,
-    buyBuff
+    buyBuff,
+    setGameStateFromSave
   };
 };

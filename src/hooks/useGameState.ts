@@ -250,14 +250,18 @@ export const useGameState = () => {
         
         // Update buffs
         newBuffs = newBuffs.map(buff => {
-          if (buff.isActive && buff.duration > 0) {
-            const newRemainingTime = Math.max(0, buff.remainingTime - 1000);
-            if (newRemainingTime <= 0) {
-              return { ...buff, isActive: false, remainingTime: 0 };
+          if (buff.isActive) {
+            if (buff.duration > 0) {
+              // Time-based buffs
+              const newRemainingTime = Math.max(0, buff.remainingTime - 1000);
+              if (newRemainingTime <= 0) {
+                return { ...buff, isActive: false, remainingTime: 0 };
+              }
+              return { ...buff, remainingTime: newRemainingTime };
+            } else if (buff.effect === 'mega-click' && buff.remainingTime <= 0) {
+              // Click-based buffs
+              return { ...buff, isActive: false, remainingTime: 10 };
             }
-            return { ...buff, remainingTime: newRemainingTime };
-          } else if (buff.effect === 'mega-click' && buff.isActive && buff.remainingTime <= 0) {
-            return { ...buff, isActive: false, remainingTime: 10 };
           }
           return buff;
         });

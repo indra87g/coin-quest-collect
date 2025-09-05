@@ -24,12 +24,15 @@ export const useCloudSave = () => {
         throw new Error('Not authenticated');
       }
 
+      // Pause the game before saving
+      const pausedGameState = { ...gameState, isPaused: true };
+
       const { error } = await supabase
         .from('game_saves')
         .upsert({
           user_id: user.id,
           save_name: saveName,
-          game_data: gameState as any,
+          game_data: pausedGameState as any,
           is_auto_save: isAutoSave,
         }, {
           onConflict: 'user_id,save_name'

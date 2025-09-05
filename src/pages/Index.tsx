@@ -9,10 +9,23 @@ import { BuffPanel } from '@/components/BuffPanel';
 import { LevelPanel } from '@/components/LevelPanel';
 import { AuthPanel } from '@/components/AuthPanel';
 import { SavePanel } from '@/components/SavePanel';
+import { PauseControl } from '@/components/PauseControl';
+import { NFTEffects } from '@/components/NFTEffects';
+import { JournalPanel } from '@/components/JournalPanel';
 
 
 const Index = () => {
-  const { gameState, clickCoin, buyUpgrade, buyCollectible, buyBuff, setGameStateFromSave } = useGameState();
+  const { 
+    gameState, 
+    clickCoin, 
+    buyUpgrade, 
+    buyCollectible, 
+    buyBuff, 
+    setGameStateFromSave,
+    togglePause,
+    getLevelRequirement,
+    isFeatureUnlocked 
+  } = useGameState();
   
   const ownedCollectibles = gameState.collectibles.filter(c => c.owned).length;
   const usedUpgradeSlots = gameState.upgrades.reduce((sum, u) => sum + u.owned, 0);
@@ -23,6 +36,15 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Game Area */}
           <div className="lg:col-span-2 space-y-6">
+          <div className="flex flex-col items-center gap-4">
+            <PauseControl
+              isPaused={gameState.isPaused}
+              onTogglePause={togglePause}
+              gameCompleted={gameState.gameCompleted}
+              level={gameState.level}
+              levelRequirement={getLevelRequirement('pause')}
+            />
+            
             <CoinClicker 
               coins={gameState.coins}
               coinsPerClick={gameState.coinsPerClick}
@@ -31,10 +53,11 @@ const Index = () => {
               currentSeason={gameState.currentSeason}
               buffs={gameState.buffs}
             />
+          </div>
             
             {/* Tabs for Upgrades, Buffs, Shop, Account, and Save */}
             <Tabs defaultValue="upgrades" className="w-full">
-              <TabsList className="grid w-full grid-cols-5 bg-game-card">
+              <TabsList className="grid w-full grid-cols-6 bg-game-card">
                 <TabsTrigger value="upgrades" className="data-[state=active]:bg-primary">
                   Upgrades
                 </TabsTrigger>
@@ -43,6 +66,9 @@ const Index = () => {
                 </TabsTrigger>
                 <TabsTrigger value="shop" className="data-[state=active]:bg-primary">
                   NFT Shop
+                </TabsTrigger>
+                <TabsTrigger value="journal" className="data-[state=active]:bg-primary">
+                  Journal
                 </TabsTrigger>
                 <TabsTrigger value="account" className="data-[state=active]:bg-primary">
                   Account
@@ -69,6 +95,8 @@ const Index = () => {
                   coins={gameState.coins}
                   onBuyBuff={buyBuff}
                   gameCompleted={gameState.gameCompleted}
+                  level={gameState.level}
+                  levelRequirement={getLevelRequirement('buffs')}
                 />
               </TabsContent>
               
@@ -79,6 +107,16 @@ const Index = () => {
                   onBuyCollectible={buyCollectible}
                   gameCompleted={gameState.gameCompleted}
                   currentSeason={gameState.currentSeason}
+                />
+              </TabsContent>
+
+              <TabsContent value="journal" className="mt-4">
+                <JournalPanel 
+                  allCollectedNFTs={gameState.allCollectedNFTs}
+                  currentSeason={gameState.currentSeason}
+                  gameCompleted={gameState.gameCompleted}
+                  level={gameState.level}
+                  levelRequirement={getLevelRequirement('journal')}
                 />
               </TabsContent>
               
@@ -128,8 +166,10 @@ const Index = () => {
             {/* Auto-generation indicator */}
             {gameState.coinsPerSecond > 0 && !gameState.gameCompleted && (
               <div className="text-center p-4 bg-game-card rounded-lg border border-border/50">
-                <div className="text-sm text-muted-foreground mb-1">Auto Generation</div>
-                <div className="text-lg font-semibold text-success animate-pulse">
+                <div className="text-sm text-muted-foreground mb-1">
+                  Auto Generation {gameState.isPaused ? '(Paused)' : ''}
+                </div>
+                <div className={`text-lg font-semibold ${gameState.isPaused ? 'text-warning opacity-50' : 'text-success animate-pulse'}`}>
                   +{gameState.coinsPerSecond}/sec
                 </div>
               </div>
@@ -156,6 +196,12 @@ const Index = () => {
           </div>
         </div>
       </div>
+      
+      {/* NFT Effects Overlay */}
+      <NFTEffects 
+        collectibles={gameState.collectibles}
+        allCollectedNFTs={gameState.allCollectedNFTs}
+      />
     </div>
   );
 };

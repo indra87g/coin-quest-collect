@@ -53,6 +53,10 @@ All colors MUST be HSL.
     --gradient-coin: linear-gradient(135deg, hsl(45 93% 58%), hsl(45 100% 70%));
     --gradient-bg: linear-gradient(135deg, hsl(240 10% 3.9%), hsl(237 22% 20%));
     
+    /* Level Requirements */
+    --warning: 38 92% 50%;
+    --warning-foreground: 48 96% 89%;
+    
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;

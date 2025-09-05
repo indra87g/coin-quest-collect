@@ -9,9 +9,12 @@ interface BuffPanelProps {
   coins: number;
   onBuyBuff: (buffId: string) => void;
   gameCompleted: boolean;
+  level: number;
+  levelRequirement: number;
 }
 
-export const BuffPanel = ({ buffs, coins, onBuyBuff, gameCompleted }: BuffPanelProps) => {
+export const BuffPanel = ({ buffs, coins, onBuyBuff, gameCompleted, level, levelRequirement }: BuffPanelProps) => {
+  const isUnlocked = level >= levelRequirement;
   const formatTime = (ms: number) => {
     const seconds = Math.ceil(ms / 1000);
     return `${seconds}s`;
@@ -28,18 +31,29 @@ export const BuffPanel = ({ buffs, coins, onBuyBuff, gameCompleted }: BuffPanelP
   return (
     <Card className="bg-game-card border-border/50">
       <CardHeader>
-        <CardTitle className="text-xl font-bold text-primary">
-          {gameCompleted ? 'Buffs (Final)' : 'Power Buffs'}
+        <CardTitle className={`text-xl font-bold ${!isUnlocked ? 'text-muted-foreground' : 'text-primary'}`}>
+          {gameCompleted ? 'Buffs (Final)' : !isUnlocked ? `Power Buffs (Level ${levelRequirement} Required)` : 'Power Buffs'}
         </CardTitle>
         <CardDescription>
           {gameCompleted 
             ? 'Your final buff configuration' 
-            : 'Temporary boosts to enhance your coin generation'
+            : !isUnlocked
+              ? `Reach Level ${levelRequirement} to unlock powerful buffs`
+              : 'Temporary boosts to enhance your coin generation'
           }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {buffs.map((buff) => {
+        {!isUnlocked ? (
+          <div className="text-center py-8 opacity-50">
+            <div className="text-4xl mb-4">🔒</div>
+            <p className="text-muted-foreground">
+              Buffs are locked until Level {levelRequirement}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {buffs.map((buff) => {
           const canAfford = coins >= buff.cost && !gameCompleted;
           const isOnCooldown = buff.lastUsed && (Date.now() - buff.lastUsed) < buff.cooldown;
           const cooldownPercentage = getCooldownPercentage(buff);
@@ -122,8 +136,10 @@ export const BuffPanel = ({ buffs, coins, onBuyBuff, gameCompleted }: BuffPanelP
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

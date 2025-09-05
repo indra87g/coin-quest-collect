@@ -48,6 +48,8 @@ export interface GameState {
   buffs: Buff[];
   experience: number;
   level: number;
+  isPaused: boolean;
+  allCollectedNFTs: Collectible[];
 }
 
 const INITIAL_UPGRADES: Upgrade[] = [
@@ -189,7 +191,9 @@ export const useGameState = () => {
           gameCompleted: parsed.gameCompleted || false,
           upgradeSlots: parsed.upgradeSlots || 10,
           experience: parsed.experience || 0,
-          level: parsed.level || 1
+          level: parsed.level || 1,
+          isPaused: parsed.isPaused || false,
+          allCollectedNFTs: parsed.allCollectedNFTs || []
         };
       } catch (e) {
         console.error('Failed to load save:', e);
@@ -207,7 +211,9 @@ export const useGameState = () => {
       upgradeSlots: 10,
       buffs: INITIAL_BUFFS,
       experience: 0,
-      level: 1
+      level: 1,
+      isPaused: false,
+      allCollectedNFTs: []
     };
   });
 
@@ -238,8 +244,8 @@ export const useGameState = () => {
         let newExp = prev.experience;
         let newLevel = prev.level;
         
-        // Auto-clicker
-        if (prev.coinsPerSecond > 0) {
+        // Auto-clicker (only if not paused)
+        if (prev.coinsPerSecond > 0 && !prev.isPaused) {
           const doubleCoinsActive = prev.buffs.find(b => b.id === 'double-coins' && b.isActive);
           const multiplier = doubleCoinsActive ? 2 : 1;
           newCoins += prev.coinsPerSecond * multiplier;
@@ -388,6 +394,12 @@ export const useGameState = () => {
         return c;
       });
 
+      // Add to all collected NFTs
+      const purchasedCollectible = prev.collectibles.find(c => c.id === collectibleId);
+      const newAllCollectedNFTs = purchasedCollectible 
+        ? [...prev.allCollectedNFTs, { ...purchasedCollectible, owned: true }]
+        : prev.allCollectedNFTs;
+
       // Check if all collectibles are owned
       const allOwned = newCollectibles.every(c => c.owned);
       
@@ -400,7 +412,8 @@ export const useGameState = () => {
           collectibles: getSeasonCollectibles(nextSeason),
           currentSeason: nextSeason,
           upgradeSlots: prev.upgradeSlots + 5, // Add 5 more upgrade slots
-          buffs: INITIAL_BUFFS // Reset buffs
+          buffs: INITIAL_BUFFS, // Reset buffs
+          allCollectedNFTs: newAllCollectedNFTs
         };
       } else if (allOwned && prev.currentSeason === 5) {
         // Game completed
@@ -408,14 +421,16 @@ export const useGameState = () => {
           ...prev,
           coins: prev.coins - collectible.cost,
           collectibles: newCollectibles,
-          gameCompleted: true
+          gameCompleted: true,
+          allCollectedNFTs: newAllCollectedNFTs
         };
       }
 
       return {
         ...prev,
         coins: prev.coins - collectible.cost,
-        collectibles: newCollectibles
+        collectibles: newCollectibles,
+        allCollectedNFTs: newAllCollectedNFTs
       };
     });
   }, []);
@@ -457,12 +472,36 @@ export const useGameState = () => {
     setGameState(newState);
   }, []);
 
+  const togglePause = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      isPaused: !prev.isPaused
+    }));
+  }, []);
+
+  const getLevelRequirement = useCallback((feature: string): number => {
+    const requirements: Record<string, number> = {
+      'buffs': 2,
+      'upgrade-slots': 3,
+      'cloud-save': 5,
+      'journal': 4
+    };
+    return requirements[feature] || 1;
+  }, []);
+
+  const isFeatureUnlocked = useCallback((feature: string, level: number): boolean => {
+    return level >= getLevelRequirement(feature);
+  }, [getLevelRequirement]);
+
   return {
     gameState,
     clickCoin,
     buyUpgrade,
     buyCollectible,
     buyBuff,
-    setGameStateFromSave
+    setGameStateFromSave,
+    togglePause,
+    getLevelRequirement,
+    isFeatureUnlocked
   };
 };

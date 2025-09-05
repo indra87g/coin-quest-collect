@@ -26,13 +26,16 @@ export const CoinClicker = ({ coins, coinsPerClick, onCoinClick, gameCompleted, 
   };
 
   const startHolding = useCallback(() => {
-    if (!rapidFireBuff || gameCompleted) return;
+    if (!rapidFireBuff || !rapidFireBuff.isActive || gameCompleted) return;
     
     setIsHolding(true);
     holdTimeoutRef.current = setTimeout(() => {
-      holdIntervalRef.current = setInterval(() => {
-        onCoinClick();
-      }, 100); // Generate coins every 100ms while holding
+      // Double check buff is still active before starting interval
+      if (rapidFireBuff && rapidFireBuff.isActive) {
+        holdIntervalRef.current = setInterval(() => {
+          onCoinClick();
+        }, 100); // Generate coins every 100ms while holding
+      }
     }, 200); // Start after 200ms hold
   }, [rapidFireBuff, gameCompleted, onCoinClick]);
 
@@ -47,6 +50,13 @@ export const CoinClicker = ({ coins, coinsPerClick, onCoinClick, gameCompleted, 
       holdIntervalRef.current = null;
     }
   }, []);
+
+  // Stop holding when rapid fire buff becomes inactive
+  useEffect(() => {
+    if (!rapidFireBuff || !rapidFireBuff.isActive) {
+      stopHolding();
+    }
+  }, [rapidFireBuff, stopHolding]);
 
   useEffect(() => {
     return () => {
@@ -82,12 +92,12 @@ export const CoinClicker = ({ coins, coinsPerClick, onCoinClick, gameCompleted, 
       
       <div className="relative">
         <Button
-          onClick={rapidFireBuff ? undefined : handleClick}
-          onMouseDown={rapidFireBuff ? startHolding : undefined}
-          onMouseUp={rapidFireBuff ? stopHolding : undefined}
-          onMouseLeave={rapidFireBuff ? stopHolding : undefined}
-          onTouchStart={rapidFireBuff ? startHolding : undefined}
-          onTouchEnd={rapidFireBuff ? stopHolding : undefined}
+          onClick={rapidFireBuff && rapidFireBuff.isActive ? undefined : handleClick}
+          onMouseDown={rapidFireBuff && rapidFireBuff.isActive ? startHolding : undefined}
+          onMouseUp={rapidFireBuff && rapidFireBuff.isActive ? stopHolding : undefined}
+          onMouseLeave={rapidFireBuff && rapidFireBuff.isActive ? stopHolding : undefined}
+          onTouchStart={rapidFireBuff && rapidFireBuff.isActive ? startHolding : undefined}
+          onTouchEnd={rapidFireBuff && rapidFireBuff.isActive ? stopHolding : undefined}
           size="lg"
           disabled={gameCompleted}
           className={`
@@ -99,13 +109,13 @@ export const CoinClicker = ({ coins, coinsPerClick, onCoinClick, gameCompleted, 
             transition-all duration-200
             ${gameCompleted ? 'opacity-50 cursor-not-allowed' : ''}
             ${isClicking || isHolding ? 'animate-bounce-coin' : 'animate-float'}
-            ${rapidFireBuff ? 'animate-pulse' : ''}
+            ${rapidFireBuff && rapidFireBuff.isActive ? 'animate-pulse' : ''}
           `}
         >
           {gameCompleted ? '👑' : '🪙'}
         </Button>
         
-        {rapidFireBuff && (
+        {rapidFireBuff && rapidFireBuff.isActive && (
           <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-xs text-warning bg-warning/20 px-2 py-1 rounded animate-pulse">
             Hold to generate!
           </div>

@@ -67,7 +67,11 @@ export default {
 					foreground: 'hsl(var(--warning-foreground))'
 				},
 				coin: 'hsl(var(--coin))',
-				gold: 'hsl(var(--gold))'
+				gold: 'hsl(var(--gold))',
+				endless: {
+					DEFAULT: 'hsl(var(--endless))',
+					foreground: 'hsl(var(--endless-foreground))'
+				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

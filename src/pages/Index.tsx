@@ -12,6 +12,7 @@ import { SavePanel } from '@/components/SavePanel';
 import { PauseControl } from '@/components/PauseControl';
 import { NFTEffects } from '@/components/NFTEffects';
 import { JournalPanel } from '@/components/JournalPanel';
+import { LeaderboardPanel } from '@/components/LeaderboardPanel';
 
 
 const Index = () => {
@@ -29,6 +30,7 @@ const Index = () => {
   
   const ownedCollectibles = gameState.collectibles.filter(c => c.owned).length;
   const usedUpgradeSlots = gameState.upgrades.reduce((sum, u) => sum + u.owned, 0);
+  const isEndlessMode = gameState.currentSeason === 999;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-game-bg to-background">
@@ -57,7 +59,7 @@ const Index = () => {
             
             {/* Tabs for Upgrades, Buffs, Shop, Account, and Save */}
             <Tabs defaultValue="upgrades" className="w-full">
-              <TabsList className="grid w-full grid-cols-6 bg-game-card">
+              <TabsList className="grid w-full grid-cols-7 bg-game-card">
                 <TabsTrigger value="upgrades" className="data-[state=active]:bg-primary">
                   Upgrades
                 </TabsTrigger>
@@ -69,6 +71,9 @@ const Index = () => {
                 </TabsTrigger>
                 <TabsTrigger value="journal" className="data-[state=active]:bg-primary">
                   Journal
+                </TabsTrigger>
+                <TabsTrigger value="leaderboard" className="data-[state=active]:bg-primary">
+                  Leaderboard
                 </TabsTrigger>
                 <TabsTrigger value="account" className="data-[state=active]:bg-primary">
                   Account
@@ -115,6 +120,17 @@ const Index = () => {
                   gameCompleted={gameState.gameCompleted}
                   level={gameState.level}
                   levelRequirement={getLevelRequirement('journal')}
+                />
+              </TabsContent>
+
+              <TabsContent value="leaderboard" className="mt-4">
+                <LeaderboardPanel 
+                  gameState={{
+                    coins: gameState.coins,
+                    level: gameState.level,
+                    currentSeason: gameState.currentSeason
+                  }}
+                  isEndlessMode={isEndlessMode}
                 />
               </TabsContent>
               

@@ -50,6 +50,7 @@ export interface GameState {
   level: number;
   isPaused: boolean;
   allCollectedNFTs: Collectible[];
+  clickXP: number;
 }
 
 const INITIAL_UPGRADES: Upgrade[] = [
@@ -193,7 +194,8 @@ export const useGameState = () => {
           experience: parsed.experience || 0,
           level: parsed.level || 1,
           isPaused: parsed.isPaused || false,
-          allCollectedNFTs: parsed.allCollectedNFTs || []
+          allCollectedNFTs: parsed.allCollectedNFTs || [],
+          clickXP: parsed.clickXP || 1
         };
       } catch (e) {
         console.error('Failed to load save:', e);
@@ -213,7 +215,8 @@ export const useGameState = () => {
       experience: 0,
       level: 1,
       isPaused: false,
-      allCollectedNFTs: []
+      allCollectedNFTs: [],
+      clickXP: 1
     };
   });
 
@@ -251,7 +254,7 @@ export const useGameState = () => {
           newCoins += prev.coinsPerSecond * multiplier;
           
           // Add XP for auto generation
-          newExp += Math.floor(prev.coinsPerSecond * multiplier * 0.1);
+          newExp += Math.floor(prev.coinsPerSecond * multiplier * 0.1) * (prev.clickXP || 1);
         }
         
         // Update buffs
@@ -305,7 +308,7 @@ export const useGameState = () => {
       
       let coinsToAdd = prev.coinsPerClick;
       let newBuffs = [...prev.buffs];
-      let newExp = prev.experience + 1; // 1 XP per click
+      let newExp = prev.experience + (prev.clickXP || 1); // Variable XP per click
       let newLevel = prev.level;
       
       // Check for active buffs
@@ -418,24 +421,29 @@ export const useGameState = () => {
       const allOwned = newCollectibles.every(c => c.owned);
       
       if (allOwned && prev.currentSeason < 5) {
-        // Advance to next season
+        // Advance to next season and increase click XP by 5
         const nextSeason = prev.currentSeason + 1;
+        const newClickXP = (prev.clickXP || 1) + 5;
         return {
           ...prev,
           coins: 0, // Reset coins
           collectibles: getSeasonCollectibles(nextSeason),
           currentSeason: nextSeason,
           buffs: INITIAL_BUFFS, // Reset buffs
-          allCollectedNFTs: newAllCollectedNFTs
+          allCollectedNFTs: newAllCollectedNFTs,
+          clickXP: newClickXP
         };
       } else if (allOwned && prev.currentSeason === 5) {
-        // Game completed
+        // Enter Endless Mode (season 999)
+        const newClickXP = (prev.clickXP || 1) + 5;
         return {
           ...prev,
           coins: prev.coins - collectible.cost,
           collectibles: newCollectibles,
-          gameCompleted: true,
-          allCollectedNFTs: newAllCollectedNFTs
+          currentSeason: 999, // Endless mode marker
+          gameCompleted: false, // Keep game active for endless mode
+          allCollectedNFTs: newAllCollectedNFTs,
+          clickXP: newClickXP
         };
       }
 

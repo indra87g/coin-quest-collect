@@ -42,6 +42,9 @@ All colors MUST be HSL.
     --gold: 45 100% 70%;
     --gold-foreground: 45 100% 15%;
     
+    --endless: 280 100% 70%;
+    --endless-foreground: 280 100% 98%;
+    
     --success: 142 76% 36%;
     --success-foreground: 355 100% 97%;
     

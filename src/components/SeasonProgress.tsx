@@ -15,13 +15,16 @@ export const SeasonProgress = ({
   totalCollectibles 
 }: SeasonProgressProps) => {
   const progress = (ownedCollectibles / totalCollectibles) * 100;
+  const isEndlessMode = currentSeason === 999;
   
   return (
     <Card className="bg-game-card border-border/50">
       <CardHeader>
         <CardTitle className="text-lg font-bold text-primary flex items-center gap-2">
           Season Progress
-          {gameCompleted ? (
+          {isEndlessMode ? (
+            <Badge className="bg-endless text-endless-foreground">ENDLESS</Badge>
+          ) : gameCompleted ? (
             <Badge className="bg-gold text-gold-foreground">COMPLETED</Badge>
           ) : (
             <Badge variant="outline">{currentSeason}/5</Badge>
@@ -29,7 +32,17 @@ export const SeasonProgress = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {gameCompleted ? (
+        {isEndlessMode ? (
+          <div className="text-center space-y-2">
+            <div className="text-2xl">♾️</div>
+            <div className="text-sm text-muted-foreground">
+              Endless Mode Unlocked!
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Compete globally for the highest coin count!
+            </div>
+          </div>
+        ) : gameCompleted ? (
           <div className="text-center space-y-2">
             <div className="text-2xl">👑</div>
             <div className="text-sm text-muted-foreground">

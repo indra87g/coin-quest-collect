@@ -84,8 +84,6 @@ const Index = () => {
                   coins={gameState.coins}
                   onBuyUpgrade={buyUpgrade}
                   gameCompleted={gameState.gameCompleted}
-                  upgradeSlots={gameState.upgradeSlots}
-                  usedUpgradeSlots={usedUpgradeSlots}
                 />
               </TabsContent>
               

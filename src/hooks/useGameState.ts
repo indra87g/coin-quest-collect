@@ -60,7 +60,7 @@ const INITIAL_UPGRADES: Upgrade[] = [
     cost: 10,
     multiplier: 2,
     owned: 0,
-    maxOwned: 10
+    maxOwned: 1
   },
   {
     id: 'auto-clicker',
@@ -69,7 +69,7 @@ const INITIAL_UPGRADES: Upgrade[] = [
     cost: 100,
     multiplier: 1,
     owned: 0,
-    maxOwned: 5
+    maxOwned: 1
   },
   {
     id: 'coin-factory',
@@ -78,7 +78,7 @@ const INITIAL_UPGRADES: Upgrade[] = [
     cost: 1000,
     multiplier: 10,
     owned: 0,
-    maxOwned: 3
+    maxOwned: 1
   }
 ];
 
@@ -177,7 +177,7 @@ export const useGameState = () => {
           ...parsed,
           upgrades: INITIAL_UPGRADES.map(upgrade => {
             const savedUpgrade = parsed.upgrades?.find((u: Upgrade) => u.id === upgrade.id);
-            return savedUpgrade ? { ...upgrade, owned: savedUpgrade.owned } : upgrade;
+            return savedUpgrade ? { ...upgrade, owned: savedUpgrade.owned, maxOwned: savedUpgrade.maxOwned || 1 } : upgrade;
           }),
           collectibles: getSeasonCollectibles(parsed.currentSeason || 1).map(collectible => {
             const savedCollectible = parsed.collectibles?.find((c: Collectible) => c.id === collectible.id);
@@ -189,7 +189,7 @@ export const useGameState = () => {
           }),
           currentSeason: parsed.currentSeason || 1,
           gameCompleted: parsed.gameCompleted || false,
-          upgradeSlots: parsed.upgradeSlots || 10,
+          upgradeSlots: 999, // Remove upgrade slot limitation
           experience: parsed.experience || 0,
           level: parsed.level || 1,
           isPaused: parsed.isPaused || false,
@@ -208,7 +208,7 @@ export const useGameState = () => {
       collectibles: getSeasonCollectibles(1),
       currentSeason: 1,
       gameCompleted: false,
-      upgradeSlots: 10,
+      upgradeSlots: 999, // Remove upgrade slot limitation
       buffs: INITIAL_BUFFS,
       experience: 0,
       level: 1,
@@ -274,9 +274,16 @@ export const useGameState = () => {
         
         // Level up calculation
         const expToNext = newLevel * 100;
+        let newUpgrades = prev.upgrades;
         if (newExp >= expToNext) {
           newLevel++;
           newExp = newExp - expToNext;
+          
+          // Increase maxOwned for each upgrade by 1 when leveling up
+          newUpgrades = prev.upgrades.map(upgrade => ({
+            ...upgrade,
+            maxOwned: (upgrade.maxOwned || 1) + 1
+          }));
         }
         
         return {
@@ -284,7 +291,8 @@ export const useGameState = () => {
           coins: newCoins,
           buffs: newBuffs,
           experience: newExp,
-          level: newLevel
+          level: newLevel,
+          upgrades: newUpgrades
         };
       });
     }, 1000);
@@ -319,9 +327,16 @@ export const useGameState = () => {
       
       // Level up calculation
       const expToNext = newLevel * 100;
+      let newUpgrades = prev.upgrades;
       if (newExp >= expToNext) {
         newLevel++;
         newExp = newExp - expToNext;
+        
+        // Increase maxOwned for each upgrade by 1 when leveling up
+        newUpgrades = prev.upgrades.map(upgrade => ({
+          ...upgrade,
+          maxOwned: (upgrade.maxOwned || 1) + 1
+        }));
       }
       
       return {
@@ -330,7 +345,8 @@ export const useGameState = () => {
         totalClicks: prev.totalClicks + 1,
         buffs: newBuffs,
         experience: newExp,
-        level: newLevel
+        level: newLevel,
+        upgrades: newUpgrades
       };
     });
   }, []);
@@ -340,11 +356,9 @@ export const useGameState = () => {
       if (prev.gameCompleted) return prev;
       
       const upgrade = prev.upgrades.find(u => u.id === upgradeId);
-      const totalOwned = prev.upgrades.reduce((sum, u) => sum + u.owned, 0);
       
       if (!upgrade || prev.coins < upgrade.cost || 
-          (upgrade.maxOwned && upgrade.owned >= upgrade.maxOwned) ||
-          totalOwned >= prev.upgradeSlots) {
+          (upgrade.maxOwned && upgrade.owned >= upgrade.maxOwned)) {
         return prev;
       }
 
@@ -411,7 +425,6 @@ export const useGameState = () => {
           coins: 0, // Reset coins
           collectibles: getSeasonCollectibles(nextSeason),
           currentSeason: nextSeason,
-          upgradeSlots: prev.upgradeSlots + 5, // Add 5 more upgrade slots
           buffs: INITIAL_BUFFS, // Reset buffs
           allCollectedNFTs: newAllCollectedNFTs
         };

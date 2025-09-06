@@ -17,11 +17,9 @@ interface UpgradePanelProps {
   coins: number;
   onBuyUpgrade: (upgradeId: string) => void;
   gameCompleted: boolean;
-  upgradeSlots: number;
-  usedUpgradeSlots: number;
 }
 
-export const UpgradePanel = ({ upgrades, coins, onBuyUpgrade, gameCompleted, upgradeSlots, usedUpgradeSlots }: UpgradePanelProps) => {
+export const UpgradePanel = ({ upgrades, coins, onBuyUpgrade, gameCompleted }: UpgradePanelProps) => {
   return (
     <Card className="bg-game-card border-border/50">
       <CardHeader>
@@ -31,7 +29,7 @@ export const UpgradePanel = ({ upgrades, coins, onBuyUpgrade, gameCompleted, upg
         <CardDescription>
           {gameCompleted 
             ? 'Your final upgrade configuration' 
-            : `Improve your coin generation (${usedUpgradeSlots}/${upgradeSlots} slots used)`
+            : 'Improve your coin generation - Level up to unlock more upgrades!'
           }
         </CardDescription>
       </CardHeader>
@@ -39,7 +37,6 @@ export const UpgradePanel = ({ upgrades, coins, onBuyUpgrade, gameCompleted, upg
         {upgrades.map((upgrade) => {
           const canAfford = coins >= upgrade.cost && !gameCompleted;
           const isMaxed = upgrade.maxOwned && upgrade.owned >= upgrade.maxOwned;
-          const slotsExhausted = usedUpgradeSlots >= upgradeSlots;
           
           return (
             <Card key={upgrade.id} className="bg-background/50 border-border/30">
@@ -63,11 +60,11 @@ export const UpgradePanel = ({ upgrades, coins, onBuyUpgrade, gameCompleted, upg
                   </div>
                   <Button
                     onClick={() => onBuyUpgrade(upgrade.id)}
-                    disabled={!canAfford || isMaxed || slotsExhausted}
+                    disabled={!canAfford || isMaxed}
                     size="sm"
-                    variant={canAfford && !isMaxed && !slotsExhausted ? "default" : "secondary"}
+                    variant={canAfford && !isMaxed ? "default" : "secondary"}
                   >
-                    {gameCompleted ? 'Final' : isMaxed ? 'MAX' : slotsExhausted ? 'Full' : 'Buy'}
+                    {gameCompleted ? 'Final' : isMaxed ? 'MAX' : 'Buy'}
                   </Button>
                 </div>
               </CardContent>
